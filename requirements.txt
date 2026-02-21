@@ -1,7 +1,5 @@
-nltk
-ipykernel
 numpy
-scipy
-gensim
-sentence-transformers
-spacy
+matplotlib
+pandas
+ipykernel
+scikit-learn
