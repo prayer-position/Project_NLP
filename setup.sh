@@ -11,9 +11,6 @@ source $ENV_NAME/Scripts/activate
 pip3 install --upgrade pip
 pip install -r requirements.txt
 
-echo "---- Downloading NLTK data (punkt_tab) ----"
-python -c "import nltk; nltk.download('punkt_tab', download_dir='./nltk_data')"
-
 chmod 755 setup.sh #rwx->u and rx->g/o
 
 echo "---- Setup complete, type 'source $ENV_NAME/Scripts/activate' to activate the virtual environment. ----"
