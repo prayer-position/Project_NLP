@@ -1,5 +1,5 @@
 import pandas as pd
-
+from pathlib import Path
 def read_places(path):
     """
     Read csv file TripAdvisor.csv from path
@@ -9,7 +9,7 @@ def read_places(path):
     return places
 
 
-def precision_k_typeR(place_id: str, recommendations: tuple[str, float], df) -> float:
+def lvl_1_eval(place_id: str, recommendations: tuple[str, float], df) -> float:
     """
     Measures precision@k of the recommendation using only typR:
     If recommendation typeR is same as original place, then is 1, otherwise is 0
@@ -34,3 +34,69 @@ def precision_k_typeR(place_id: str, recommendations: tuple[str, float], df) -> 
             sum += tf
         max_sum += tf
     return sum/max_sum
+
+def get_metadata(place_id, df):
+    """
+    Extracts interesting categories relation to specific typeR of a place
+    Returns a set of categories to simplify comparison
+    """
+    row = df[df['id'] == place_id].iloc[0]
+    type_r = row['typeR']
+    
+    categories = []
+    path = Path.cwd() / '..' / 'data'
+
+    # Attractions
+    if type_r in ['A', 'AP']:
+        categories.append(translate_id(row['activiteSubCatecorie'], path / 'AttratctionSubCategorie.csv'))
+        categories.append(translate_id(row['activiteSubType'], path / 'AttractionSubType.csv'))
+
+    # Restaurants
+    elif type_r == 'R':
+        categories.append(translate_id(row['restaurantTypeCuisine'], path / 'cuisine.csv'))
+        categories.append(translate_id(row['restaurantDietaryRestrtictions'], path / 'dietary_restrictions.csv'))
+        categories.append(translate_id(row['restaurantType'], path / 'restaurantType.csv'))
+
+    # Hotels
+    elif type_r == 'H':
+        categories.append(row['priceRange'])
+
+    final_set = set()
+    for cat in categories:
+        if pd.notna(cat) and str(cat).lower() != 'none':
+            if isinstance(cat, str) and ',' in cat:
+                parts = [p.strip().lower() for p in cat.split(',')]
+                final_set.update(parts)
+            else:
+                final_set.add(str(cat.strip().lower()))
+    
+    return final_set
+
+def translate_id(id, path):
+    """
+    Translates id from the dataset into a word
+    Parameters: 
+        id: id of the type/cuisine/categorie
+        path: path of the file we want to read
+    """
+    df = pd.read_csv(path)
+    return df[df['id'] == id]['name'].iloc[0]
+
+def calculate_ranking_error(query_id, test_df, recommendations):
+    """
+    Parameters: 
+        place_id: id of the original place from which we derive the recommendations
+        recommendations: id of the recommended places
+    
+    Returns score based on ranking
+    """
+    query_emta = get_metadata(query_id)
+
+    for rank, recomendation_id in enumerate(recommendations):
+        recommendation_meta = get_metadata(recomendation_id)
+
+def lvl_2_eval(place_id: str, recommendations: tuple[str, float], df) -> float:
+    """
+    """
+    place_typeR = df[df['id'] == place_id]['typeR'].iloc[0]
+    score = 0
