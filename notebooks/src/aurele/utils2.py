@@ -188,6 +188,20 @@ def export_similarity_to_json(similarity_index, output_path="similarity_results.
         json.dump(results, f, indent=2)
     print(f"[export] {len(results)} places written to {output_path}")
 
+def safe_export_similarity(similarity_index, folder_path):
+    output_path = folder_path / "similarity_results.json"
+    
+    # Check if the file already exists
+    if output_path.exists():
+        user_choice = input(f"File '{output_path.name}' already exists. Overwrite? (y/n): ").lower()
+        
+        if user_choice != 'y':
+            print("Export cancelled.")
+            return
+    
+    # Call your original function if file doesn't exist or user said 'y'
+    export_similarity_to_json(similarity_index, output_path=output_path)
+    print(f"Successfully exported to {output_path}")
 
 # ====================================
 # Inspection / tests
