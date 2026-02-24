@@ -1,3 +1,11 @@
+<<<<<<< HEAD
 ipykernel
 numpy
 pandas
+=======
+numpy
+matplotlib
+pandas
+ipykernel
+scikit-learn
+>>>>>>> 29d1af0f55e92611661ca5585fafc6805986fbba

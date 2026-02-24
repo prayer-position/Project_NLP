@@ -1,16 +1,10 @@
 #!/bin/bash
-
-ENV_NAME="venv_NLP"
-if [ ! -d "$ENV_NAME" ]; then 
-    python3 -m venv $ENV_NAME
-    echo "---- Creating virtual environment '$ENV_NAME'. ----"
-else
-    echo "---- Virtual environment '$ENV_NAME' already exists. ----"
-fi
-source $ENV_NAME/Scripts/activate
+python3 -m venv venv_nlp 
+source venv_nlp/Scripts/activate
 pip3 install --upgrade pip
 pip install -r requirements.txt
+<<<<<<< HEAD
 
+=======
+>>>>>>> 29d1af0f55e92611661ca5585fafc6805986fbba
 chmod 755 setup.sh #rwx->u and rx->g/o
-
-echo "---- Setup complete, type 'source $ENV_NAME/Scripts/activate' to activate the virtual environment. ----"
