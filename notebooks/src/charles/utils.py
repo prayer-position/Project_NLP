@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+
 def read_places(path):
     """
     Read csv file TripAdvisor.csv from path
@@ -8,8 +9,15 @@ def read_places(path):
     places = places.drop(['idTrip', 'fromId', 'url', 'nbAvisRecupere'], axis = 1)
     return places
 
+def dict_to_tuple(original):
+    ids = []
+    confidences = []
+    for item in original:
+        ids.append(item.get('id'))
+        confidences.append(item.get('confidence'))
+    return (ids, confidences)
 
-def lvl_1_eval(place_id: str, recommendations: tuple[str, float], df) -> float:
+def lvl_1_eval(place_id: str, recommendations: list[tuple[str, float]], df) -> float:
     """
     Measures precision@k of the recommendation using only typR:
     If recommendation typeR is same as original place, then is 1, otherwise is 0
@@ -82,7 +90,7 @@ def translate_id(id, path):
     df = pd.read_csv(path)
     return df[df['id'] == id]['name'].iloc[0]
 
-def calculate_ranking_error(query_id, test_df, recommendations):
+def lvl_2_eval(place_id: str, recommendations: list[tuple[str, float]], df: pd.DataFrame):
     """
     Parameters: 
         place_id: id of the original place from which we derive the recommendations
@@ -90,13 +98,7 @@ def calculate_ranking_error(query_id, test_df, recommendations):
     
     Returns score based on ranking
     """
-    query_emta = get_metadata(query_id)
+    query_emta = get_metadata(place_id)
 
     for rank, recomendation_id in enumerate(recommendations):
         recommendation_meta = get_metadata(recomendation_id)
-
-def lvl_2_eval(place_id: str, recommendations: tuple[str, float], df) -> float:
-    """
-    """
-    place_typeR = df[df['id'] == place_id]['typeR'].iloc[0]
-    score = 0
