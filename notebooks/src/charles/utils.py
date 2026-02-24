@@ -43,54 +43,78 @@ def lvl_1_eval(place_id: str, recommendations: list[tuple[str, float]], df) -> f
         max_sum += tf
     return sum/max_sum
 
-def get_metadata(place_id, df):
+def get_metadata(place_id, df, trans_df):
     """
     Extracts interesting categories relation to specific typeR of a place
     Returns a set of categories to simplify comparison
     """
-    row = df[df['id'] == place_id].iloc[0]
-    type_r = row['typeR']
-    
+    row = df[df['id'] == place_id]
+    type_r = row['typeR'].iloc[0]
+    final_set = set()
     categories = []
     path = Path.cwd() / '..' / 'data'
 
     # Attractions
     if type_r in ['A', 'AP']:
-        categories.append(translate_id(row['activiteSubCatecorie'], path / 'AttratctionSubCategorie.csv'))
-        categories.append(translate_id(row['activiteSubType'], path / 'AttractionSubType.csv'))
+        categories.append(translate_id(row['activiteSubCategorie'].iloc[0], 'sub_cat', trans_df))
+        categories.append(translate_id(row['activiteSubType'].iloc[0], 'sub_type', trans_df))
 
     # Restaurants
     elif type_r == 'R':
-        categories.append(translate_id(row['restaurantTypeCuisine'], path / 'cuisine.csv'))
-        categories.append(translate_id(row['restaurantDietaryRestrtictions'], path / 'dietary_restrictions.csv'))
-        categories.append(translate_id(row['restaurantType'], path / 'restaurantType.csv'))
+        categories.append(translate_id(row['restaurantTypeCuisine'].iloc[0], 'cuisine', trans_df))
+        categories.append(translate_id(row['restaurantDietaryRestrictions'].iloc[0], 'diet_restric', trans_df))
+        categories.append(translate_id(row['restaurantType'].iloc[0], 'rest_type', trans_df))
 
     # Hotels
     elif type_r == 'H':
-        categories.append(row['priceRange'])
+        price = row['priceRange'].iloc[0]
+        if pd.notna(price):
+            final_set.add(str(price).strip().lower())
 
-    final_set = set()
-    for cat in categories:
-        if pd.notna(cat) and str(cat).lower() != 'none':
-            if isinstance(cat, str) and ',' in cat:
-                parts = [p.strip().lower() for p in cat.split(',')]
-                final_set.update(parts)
-            else:
-                final_set.add(str(cat.strip().lower()))
+    return {str(cat).lower() for cat in final_set if cat}
+
+def translate_id(raw_id, prefix, df):
+    """
+    Safely translates one or multiple comma-separated IDs.
+    Returns a list of translated names.
+    """
+    # 1. Handle missing values immediately
+    if pd.isna(raw_id) or str(raw_id).lower() == 'none':
+        return []
+    translated_names = []
+
+    search_id = f"{prefix}_{id}"
+    match = df[df['id'] == search_id]
     
-    return final_set
+    if not match.empty:
+        translated_names.append(match['name'].iloc[0])
 
-def translate_id(id, path):
-    """
-    Translates id from the dataset into a word
-    Parameters: 
-        id: id of the type/cuisine/categorie
-        path: path of the file we want to read
-    """
-    df = pd.read_csv(path)
-    return df[df['id'] == id]['name'].iloc[0]
+    return translated_names 
 
-def lvl_2_eval(place_id: str, recommendations: list[tuple[str, float]], df: pd.DataFrame):
+def get_translation_dicts():
+    """
+    Reads the csvs for the categories/types/etc. to avoid reading them every call of the lvl_2_eval function
+    """
+    df = pd.DataFrame()
+    path = Path.cwd() / '..' / 'data'
+
+    files = {
+    'sub_cat': 'AttractionSubCategorie.csv', 
+    'sub_type': 'AttractionSubType.csv',
+    'cuisine': 'cuisine.csv',
+    'diet_restric': 'dietary_restrictions.csv',
+    'rest_type': 'restaurantType.csv',
+    }
+
+    for prefix, file_name in files.items():
+        temp_df = pd.read_csv(path / file_name)
+        # Add a prefix to the ID: e.g., "20" becomes "sub_cat_20"
+        temp_df['id'] = prefix + "_" + temp_df['id'].astype(str)
+        df = pd.concat([df, temp_df])
+
+    return df
+
+def lvl_2_eval(place_id: str, recommendations: list[str], df: pd.DataFrame, translation_df: pd.DataFrame):
     """
     Parameters: 
         place_id: id of the original place from which we derive the recommendations
@@ -98,7 +122,13 @@ def lvl_2_eval(place_id: str, recommendations: list[tuple[str, float]], df: pd.D
     
     Returns score based on ranking
     """
-    query_emta = get_metadata(place_id)
+    query_meta = get_metadata(place_id, df, translation_df)
 
     for rank, recomendation_id in enumerate(recommendations):
-        recommendation_meta = get_metadata(recomendation_id)
+        recommendation_meta = get_metadata(recomendation_id, df, translation_df)
+        for data in query_meta:
+            if data in recommendation_meta:
+                return rank
+            
+    return None
+
