@@ -7,7 +7,12 @@ This project utilises Natural language processing (NLP) techniques to analyze re
 ## Instructions
 * To use the code in this project, just follow these steps :
 ```bash
-git clone <url> NLP_project
+git clone git@github.com:prayer-position/Project_NLP.git NLP_project
+# for SSH connection
+```
+```bash
+git clone https://github.com/prayer-position/Project_NLP.git NLP_project
+# for https connection
 ```
 ```bash
 cd NLP_project
