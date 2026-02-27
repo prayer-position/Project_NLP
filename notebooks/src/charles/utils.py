@@ -57,7 +57,7 @@ def lvl_1_eval(place_id: str, recommendations: list[tuple[str, float]], df) -> f
         max_sum += tf
     return sum/max_sum
 
-def get_metadata(place_id, df, trans_df):
+def get_metadata(place_id: str, df: pd.DataFrame, trans_df: pd.DataFrame):
     """
     Extracts interesting categories relation to specific typeR of a place
     Returns a set of categories to simplify comparison
@@ -65,19 +65,18 @@ def get_metadata(place_id, df, trans_df):
     row = df[df['id'] == place_id]
     type_r = row['typeR'].iloc[0]
     final_set = set()
-    categories = []
     path = Path.cwd() / '..' / 'data'
 
     # Attractions
-    if type_r in ['A', 'AP']:
-        categories.append(translate_id(row['activiteSubCategorie'].iloc[0], 'sub_cat', trans_df))
-        categories.append(translate_id(row['activiteSubType'].iloc[0], 'sub_type', trans_df))
+    if type_r == 'A':
+        final_set.add(translate_id(row['activiteSubCategorie'].iloc[0], 'sub_cat', trans_df))
+        final_set.add(translate_id(row['activiteSubType'].iloc[0], 'sub_type', trans_df))
 
     # Restaurants
     elif type_r == 'R':
-        categories.append(translate_id(row['restaurantTypeCuisine'].iloc[0], 'cuisine', trans_df))
-        categories.append(translate_id(row['restaurantDietaryRestrictions'].iloc[0], 'diet_restric', trans_df))
-        categories.append(translate_id(row['restaurantType'].iloc[0], 'rest_type', trans_df))
+        final_set.add(translate_id(row['restaurantTypeCuisine'].iloc[0], 'cuisine', trans_df))
+        final_set.add(translate_id(row['restaurantDietaryRestrictions'].iloc[0], 'diet_restric', trans_df))
+        final_set.add(translate_id(row['restaurantType'].iloc[0], 'rest_type', trans_df))
 
     # Hotels
     elif type_r == 'H':
@@ -87,23 +86,21 @@ def get_metadata(place_id, df, trans_df):
 
     return {str(cat).lower() for cat in final_set if cat}
 
-def translate_id(raw_id, prefix, df):
+def translate_id(raw_id: str, prefix: str, df: pd.DataFrame):
     """
-    Safely translates one or multiple comma-separated IDs.
-    Returns a list of translated names.
+    Safely translates a single ID.
+    Returns the translated name as a string, or None if not found/missing.
     """
-    # 1. Handle missing values immediately
     if pd.isna(raw_id) or str(raw_id).lower() == 'none':
-        return []
-    translated_names = []
+        return None
 
-    search_id = f"{prefix}_{id}"
+    search_id = f"{prefix}_{raw_id}"
     match = df[df['id'] == search_id]
-    
-    if not match.empty:
-        translated_names.append(match['name'].iloc[0])
 
-    return translated_names 
+    if not match.empty:
+        return match['name'].iloc[0]
+    
+    return None
 
 def get_translation_dicts():
     """
