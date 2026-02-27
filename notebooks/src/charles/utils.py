@@ -1,5 +1,19 @@
 import pandas as pd
 from pathlib import Path
+import urllib.request
+
+def ensure_data(dir, file, url):
+    if not file.exists():
+        print(f"Data not found at {file}. Dowloading from GitHub")
+        dir.mkdir(parents = True, exist_ok = True)
+
+        try:
+            urllib.request.urlretrieve(url, file)
+            print("Download successful!")
+        except Exception as e:
+            print(f"Failed to download adata: {e}")
+    else: 
+        print("Data found locally, skipping download")
 
 def read_places(path):
     """
