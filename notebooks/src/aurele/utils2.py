@@ -271,10 +271,8 @@ def test_tfidf_vocab(X_tfidf, vectorizer, n_words=8, n_docs=4):
 def get_important_vocab(reviews_series, max_features=300):
     """Identifie les mots les plus importants du corpus."""
     from sklearn.feature_extraction.text import TfidfVectorizer
-    # On ajoute des stop_words pour éliminer les mots inutiles (the, a, etc.)
     vectorizer = TfidfVectorizer(max_features=max_features, stop_words='english')
     vectorizer.fit(reviews_series)
-    # On récupère uniquement la liste des mots
     return set(vectorizer.get_feature_names_out())
 
 def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 80):
@@ -292,11 +290,9 @@ def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 80):
     vocab = get_important_vocab(reviews_series, max_features=max_vocab)
     
     print(f"Filtrage des tokens (Vocabulaire limité à {max_vocab} mots)...")
-    # 2. Tokenisation ultra-rapide : on ne garde que si le mot est dans le vocab
     tokenized_corpus = []
     for doc in reviews_series:
         words = str(doc).replace('.', ' ').split()
-        # On ne garde que les mots 'importants'
         filtered_words = [w for w in words if w in vocab]
         tokenized_corpus.append(filtered_words)
 
@@ -309,11 +305,8 @@ def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 80):
         query = tokenized_corpus[i]
         if not query: continue
             
-        # Calcul des scores
         scores = bm25.get_scores(query)
-        scores[i] = -1  # Exclure l'endroit lui-même
-        
-        # Sélection rapide du Top-K avec argpartition
+        scores[i] = -1  
         top_k_idx = np.argpartition(scores, -k)[-k:]
         top_k_idx = top_k_idx[np.argsort(scores[top_k_idx])[::-1]]
         
