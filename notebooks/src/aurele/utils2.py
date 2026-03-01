@@ -277,7 +277,7 @@ def get_important_vocab(reviews_series, max_features=300):
     # On récupère uniquement la liste des mots
     return set(vectorizer.get_feature_names_out())
 
-def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 300):
+def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 80):
     """
     Computes Top-K recommendation for each place using BM25.
 
@@ -317,10 +317,11 @@ def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 300):
         top_k_idx = np.argpartition(scores, -k)[-k:]
         top_k_idx = top_k_idx[np.argsort(scores[top_k_idx])[::-1]]
         
+        
         row = {"idplace": pid}
         for j, idx in enumerate(top_k_idx):
             row[f"top{j+1}_id"] = idplaces[idx]
             row[f"top{j+1}_sim"] = round(float(scores[idx]), 4)
         rows.append(row)
-        
+
     return pd.DataFrame(rows)
