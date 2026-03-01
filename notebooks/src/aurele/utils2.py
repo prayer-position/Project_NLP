@@ -16,6 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 import urllib.request
+from rank_bm25 import BM25Okapi
 
 def ensure_data(dir, file, url):
     if not file.exists():
@@ -97,7 +98,7 @@ def aggregate_by_place(df):
 
 def compute_tfidf(reviews_series, max_features=5000):
     """max_features: most frequent terms cap"""
-    vectorizer = TfidfVectorizer(max_features=max_features)
+    vectorizer = TfidfVectorizer(max_features=max_features, stop_words="english")
     X_tfidf = vectorizer.fit_transform(reviews_series)
     return X_tfidf, vectorizer
 
@@ -264,3 +265,63 @@ def test_tfidf_vocab(X_tfidf, vectorizer, n_words=8, n_docs=4):
     summary = pd.DataFrame(sample, columns=selected,
                            index=[f"doc {i}" for i in range(n_docs)])
     print(summary.round(3))
+
+# =========================================
+# BM25 model
+
+def get_important_vocab(reviews_series, max_features=300):
+    """Identifie les mots les plus importants du corpus."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    # On ajoute des stop_words pour éliminer les mots inutiles (the, a, etc.)
+    vectorizer = TfidfVectorizer(max_features=max_features, stop_words='english')
+    vectorizer.fit(reviews_series)
+    # On récupère uniquement la liste des mots
+    return set(vectorizer.get_feature_names_out())
+
+def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 300):
+    """
+    Computes Top-K recommendation for each place using BM25.
+
+    Parameters:
+        reviews_series: pd.Series containing aggregated & clean reviews
+        idplaces: list/array of ids corresponding to each review
+        k: number of desired recommendations
+
+    Returns:
+        DataFrame containing for each idplace the k-neighbours and their BM25 scores
+    """
+    vocab = get_important_vocab(reviews_series, max_features=max_vocab)
+    
+    print(f"Filtrage des tokens (Vocabulaire limité à {max_vocab} mots)...")
+    # 2. Tokenisation ultra-rapide : on ne garde que si le mot est dans le vocab
+    tokenized_corpus = []
+    for doc in reviews_series:
+        words = str(doc).replace('.', ' ').split()
+        # On ne garde que les mots 'importants'
+        filtered_words = [w for w in words if w in vocab]
+        tokenized_corpus.append(filtered_words)
+
+    print("Initialisation BM25...")
+    bm25 = BM25Okapi(tokenized_corpus)
+    
+    print("Calcul des recommandations (Vectorisé)...")
+    rows = []
+    for i, pid in enumerate(idplaces):
+        query = tokenized_corpus[i]
+        if not query: continue
+            
+        # Calcul des scores
+        scores = bm25.get_scores(query)
+        scores[i] = -1  # Exclure l'endroit lui-même
+        
+        # Sélection rapide du Top-K avec argpartition
+        top_k_idx = np.argpartition(scores, -k)[-k:]
+        top_k_idx = top_k_idx[np.argsort(scores[top_k_idx])[::-1]]
+        
+        row = {"idplace": pid}
+        for j, idx in enumerate(top_k_idx):
+            row[f"top{j+1}_id"] = idplaces[idx]
+            row[f"top{j+1}_sim"] = round(float(scores[idx]), 4)
+        rows.append(row)
+        
+    return pd.DataFrame(rows)
