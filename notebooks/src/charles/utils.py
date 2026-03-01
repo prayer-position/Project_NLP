@@ -1,6 +1,8 @@
 import pandas as pd
 from pathlib import Path
 import urllib.request
+import numpy as np
+from rank_bm25 import BM25Okapi
 
 def ensure_data(dir, file, url):
     if not file.exists():
@@ -31,7 +33,7 @@ def dict_to_tuple(original):
         confidences.append(item.get('confidence'))
     return (ids, confidences)
 
-def lvl_1_eval(place_id: str, recommendations: list[tuple[str, float]], df) -> float:
+def lvl_1_eval(place_id: str, recommendations: list[str], df) -> float:
     """
     Measures precision@k of the recommendation using only typR:
     If recommendation typeR is same as original place, then is 1, otherwise is 0
@@ -44,18 +46,22 @@ def lvl_1_eval(place_id: str, recommendations: list[tuple[str, float]], df) -> f
             value2: trust factor of the recommendation
 
     Returns:
-        Mean of the recommendation typeR with regard to trust factor
+        Mean of the recommendation typeR
     """
-    place_typeR = df[df['id'] == place_id]['typeR'].iloc[0]
-    sum = 0
-    max_sum = 0
-    recommendation_ids, tfs = recommendations
-    for recommendation_id, tf in zip(recommendation_ids, tfs):
-        recommendation_typeR = df[df['id'] == recommendation_id]['typeR'].iloc[0]
-        if recommendation_typeR == place_typeR  :
-            sum += tf
-        max_sum += tf
-    return sum/max_sum
+    target_row = df[df['id'] == place_id]
+    if target_row.empty:
+        return 0.0
+    place_typeR = target_row['typeR'].iloc[0]
+    correct_matches = 0
+    for reco_id in recommendations:
+        rec_row = df[df['id'] == reco_id]
+        
+        if not rec_row.empty:
+            rec_typeR = rec_row['typeR'].iloc[0]
+            if rec_typeR == place_typeR:
+                correct_matches += 1
+
+    return correct_matches / len(recommendations) if recommendations else 0.0
 
 def get_metadata(place_id: str, df: pd.DataFrame, trans_df: pd.DataFrame):
     """
