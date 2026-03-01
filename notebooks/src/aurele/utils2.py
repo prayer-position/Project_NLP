@@ -268,25 +268,14 @@ def test_tfidf_vocab(X_tfidf, vectorizer, n_words=8, n_docs=4):
 # =========================================
 # BM25 model
 
-def get_important_vocab(reviews_series, max_features=300):
+def get_important_vocab(reviews_series, max_features=3000):
     """Identifie les mots les plus importants du corpus."""
     from sklearn.feature_extraction.text import TfidfVectorizer
     vectorizer = TfidfVectorizer(max_features=max_features, stop_words='english')
     vectorizer.fit(reviews_series)
     return set(vectorizer.get_feature_names_out())
 
-def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 80):
-    """
-    Computes Top-K recommendation for each place using BM25.
-
-    Parameters:
-        reviews_series: pd.Series containing aggregated & clean reviews
-        idplaces: list/array of ids corresponding to each review
-        k: number of desired recommendations
-
-    Returns:
-        DataFrame containing for each idplace the k-neighbours and their BM25 scores
-    """
+def compute_bm25_fast(reviews_series, idplaces, k=5, max_vocab = 3000):
     vocab = get_important_vocab(reviews_series, max_features=max_vocab)
     
     print(f"Filtrage des tokens (Vocabulaire limité à {max_vocab} mots)...")
