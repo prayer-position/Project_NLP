@@ -202,8 +202,7 @@ def export_similarity_to_json(similarity_index, output_path="similarity_results.
         json.dump(results, f, indent=2)
     print(f"[export] {len(results)} places written to {output_path}")
 
-def safe_export_similarity(similarity_index, folder_path):
-    output_path = folder_path / "similarity_results.json"
+def safe_export_similarity(similarity_index, output_path):
     
     # Check if the file already exists
     if output_path.exists():
